@@ -1,0 +1,23 @@
+{
+  "name": "offline-finance",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "个人离线理财工具 - PWA",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.3",
+    "dexie": "^4.0.8",
+    "vue": "^3.4.38"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.2",
+    "vite": "^5.4.2",
+    "vite-plugin-pwa": "^0.20.1"
+  }
+}
