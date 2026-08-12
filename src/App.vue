@@ -7,25 +7,43 @@ import TransactionList from './components/TransactionList.vue'
 import MonthlySummary from './components/MonthlySummary.vue'
 import CategoryChart from './components/CategoryChart.vue'
 import CategoryManager from './components/CategoryManager.vue'
+import PiggyBankManager from './components/PiggyBankManager.vue'
+import DailyLimitCard from './components/DailyLimitCard.vue'
+import SettingsManager from './components/SettingsManager.vue'
 import InstallPrompt from './components/InstallPrompt.vue'
 
-const activeTab = ref('home') // home | stats | categories | settings
+const activeTab = ref('home') // home | stats | piggy | categories | settings
 const formRef = ref()
 const listRef = ref()
 const summaryRef = ref()
 const chartRef = ref()
+const limitCardRef = ref()
+const piggyRef = ref()
 const importInput = ref()
 const refreshKey = ref(0)
 
+function setActiveTab(tab) {
+  activeTab.value = tab
+}
+
 onMounted(async () => {
   await initDefaultCategories()
+  // 给子组件提供全局跳转方法(如记账表单里「未设置限额 → 设置」的跳转)
+  window.__jumpTab = setActiveTab
 })
 
 function handleSaved() {
-  // 保存后刷新列表与汇总
+  // 保存后刷新列表、汇总、限额卡片
   listRef.value?.loadList()
   summaryRef.value?.loadSummary()
   chartRef.value?.loadData()
+  limitCardRef.value?.load()
+  refreshKey.value++
+}
+
+function handlePiggyChanged() {
+  // 存钱罐操作影响主余额,刷新汇总
+  summaryRef.value?.loadSummary()
   refreshKey.value++
 }
 
@@ -67,6 +85,7 @@ async function handleImport(e) {
       <!-- 首页:记账 -->
       <template v-if="activeTab === 'home'">
         <MonthlySummary ref="summaryRef" :key="`summary-${refreshKey}`" />
+        <DailyLimitCard ref="limitCardRef" :key="`limit-${refreshKey}`" />
         <TransactionForm ref="formRef" @saved="handleSaved" />
         <TransactionList ref="listRef" :key="`list-${refreshKey}`" @changed="handleSaved" />
       </template>
@@ -77,6 +96,11 @@ async function handleImport(e) {
         <CategoryChart ref="chartRef" :key="`chart-${refreshKey}`" />
       </template>
 
+      <!-- 存钱罐 -->
+      <template v-else-if="activeTab === 'piggy'">
+        <PiggyBankManager ref="piggyRef" :key="`piggy-${refreshKey}`" @changed="handlePiggyChanged" />
+      </template>
+
       <!-- 分类管理 -->
       <template v-else-if="activeTab === 'categories'">
         <CategoryManager :key="`cat-${refreshKey}`" />
@@ -84,6 +108,7 @@ async function handleImport(e) {
 
       <!-- 设置 -->
       <template v-else-if="activeTab === 'settings'">
+        <SettingsManager :key="`settings-${refreshKey}`" />
         <div class="settings-card">
           <h3 class="settings-title">数据备份</h3>
           <p class="settings-desc">数据存储在本地浏览器,定期导出备份避免丢失。</p>
@@ -93,7 +118,7 @@ async function handleImport(e) {
         </div>
         <div class="settings-card">
           <h3 class="settings-title">关于</h3>
-          <p class="settings-desc">离线理财记账工具 v0.1.0</p>
+          <p class="settings-desc">离线理财记账工具 v0.2.0</p>
           <p class="settings-desc">数据存储在本地 IndexedDB,可安装到手机主屏离线使用。</p>
         </div>
       </template>
@@ -109,6 +134,10 @@ async function handleImport(e) {
       <button class="tab" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
         <span class="tab-icon">📊</span>
         <span class="tab-label">统计</span>
+      </button>
+      <button class="tab" :class="{ active: activeTab === 'piggy' }" @click="activeTab = 'piggy'">
+        <span class="tab-icon">🐷</span>
+        <span class="tab-label">存钱</span>
       </button>
       <button class="tab" :class="{ active: activeTab === 'categories' }" @click="activeTab = 'categories'">
         <span class="tab-icon">🏷️</span>

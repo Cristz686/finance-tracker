@@ -28,11 +28,30 @@ function nextMonth() {
   currentMonth.value = shiftMonth(currentMonth.value, 1)
 }
 
-async function handleDelete(id) {
+// transfer 类型记录不能直接删除,会破坏存钱罐余额一致性
+async function handleDelete(tx) {
+  if (tx.type === 'transfer') {
+    alert('此记录为存钱罐操作,不能直接删除\n请前往「存钱」页面通过反向操作调整')
+    return
+  }
   if (!confirm('确认删除这笔记录?')) return
-  await deleteTransaction(id)
+  await deleteTransaction(tx.id)
   await loadList()
   emit('changed')
+}
+
+function txIcon(tx) {
+  if (tx.type === 'transfer') {
+    return tx.transferType === 'deposit' ? '↓' : '↑'
+  }
+  return tx.category?.slice(0, 1) || '·'
+}
+
+function txAmountText(tx) {
+  const sign = tx.type === 'income' ? '+' :
+               tx.type === 'expense' ? '-' :
+               tx.transferType === 'deposit' ? '-' : '+'
+  return sign + formatMoney(tx.amount)
 }
 
 watch(currentMonth, loadList)
@@ -53,15 +72,19 @@ defineExpose({ loadList })
     <div v-else-if="list.length === 0" class="empty">本月暂无记录</div>
     <div v-else class="list-body">
       <div v-for="tx in list" :key="tx.id" class="tx-item">
-        <div class="tx-icon">{{ tx.category?.slice(0, 1) || '·' }}</div>
+        <div class="tx-icon" :class="{ transfer: tx.type === 'transfer' }">{{ txIcon(tx) }}</div>
         <div class="tx-info">
           <span class="tx-category">{{ tx.category }}</span>
           <span class="tx-meta">{{ tx.date }}<template v-if="tx.note"> · {{ tx.note }}</template></span>
         </div>
-        <div class="tx-amount" :class="tx.type">
-          {{ tx.type === 'income' ? '+' : '-' }}{{ formatMoney(tx.amount) }}
+        <div class="tx-amount" :class="tx.type + (tx.type === 'transfer' ? ' ' + tx.transferType : '')">
+          {{ txAmountText(tx) }}
         </div>
-        <button class="del-btn" @click="handleDelete(tx.id)">✕</button>
+        <button
+          class="del-btn"
+          :class="{ disabled: tx.type === 'transfer' }"
+          @click="handleDelete(tx)"
+        >✕</button>
       </div>
     </div>
   </div>
@@ -158,6 +181,17 @@ defineExpose({ loadList })
 .tx-amount.expense {
   color: var(--color-expense);
 }
+.tx-amount.transfer {
+  color: #f59e0b;
+}
+.tx-icon.transfer {
+  background: #fef3c7;
+  color: #92400e;
+}
+.del-btn.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
 .del-btn {
   width: 24px;
   height: 24px;
@@ -166,7 +200,7 @@ defineExpose({ loadList })
   font-size: 12px;
   flex-shrink: 0;
 }
-.del-btn:hover {
+.del-btn:not(.disabled):hover {
   background: var(--color-surface-muted);
   color: var(--color-expense);
 }

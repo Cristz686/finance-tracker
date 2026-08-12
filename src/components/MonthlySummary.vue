@@ -52,6 +52,24 @@ defineExpose({ loadSummary })
         <span class="stat-value expense">{{ formatMoney(summary.expense) }}</span>
       </div>
     </div>
+
+    <!-- 主余额 / 存钱罐 / 总资产 -->
+    <div v-if="summary.piggyBanksTotal > 0" class="assets-row">
+      <div class="asset-item">
+        <span class="asset-label">主余额</span>
+        <span class="asset-value">¥{{ formatMoney(summary.mainBalance) }}</span>
+      </div>
+      <div class="asset-divider"></div>
+      <div class="asset-item">
+        <span class="asset-label">存钱罐</span>
+        <span class="asset-value">¥{{ formatMoney(summary.piggyBanksTotal) }}</span>
+      </div>
+      <div class="asset-divider"></div>
+      <div class="asset-item">
+        <span class="asset-label">总资产</span>
+        <span class="asset-value strong">¥{{ formatMoney(summary.totalAssets) }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -131,5 +149,37 @@ defineExpose({ loadSummary })
   width: 1px;
   height: 32px;
   background: rgba(255, 255, 255, 0.2);
+}
+.assets-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacer-8);
+  margin-top: var(--spacer-16);
+  padding-top: var(--spacer-16);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+.asset-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.asset-label {
+  font-size: 11px;
+  opacity: 0.75;
+}
+.asset-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.asset-value.strong {
+  font-size: 16px;
+  font-weight: 700;
+}
+.asset-divider {
+  width: 1px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.15);
 }
 </style>
