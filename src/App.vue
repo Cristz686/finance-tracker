@@ -43,7 +43,15 @@ function handleSaved() {
 
 function handlePiggyChanged() {
   // 存钱罐操作影响主余额,刷新汇总
+  // 注意:不能 refreshKey++,否则 PiggyBankManager 会因 :key 变化被销毁重建,
+  // 而 onMounted(load) 又会触发本回调,形成无限重挂载循环。
+  // PiggyBankManager 自己会在操作后 reload,无需父组件驱动重建。
   summaryRef.value?.loadSummary()
+}
+
+function handleSettingsChanged() {
+  // 限额变化时刷新首页的限额展示(表单和卡片)
+  // refreshKey 变化会让首页组件重新挂载并重新加载限额
   refreshKey.value++
 }
 
@@ -108,7 +116,7 @@ async function handleImport(e) {
 
       <!-- 设置 -->
       <template v-else-if="activeTab === 'settings'">
-        <SettingsManager :key="`settings-${refreshKey}`" />
+        <SettingsManager :key="`settings-${refreshKey}`" @changed="handleSettingsChanged" />
         <div class="settings-card">
           <h3 class="settings-title">数据备份</h3>
           <p class="settings-desc">数据存储在本地浏览器,定期导出备份避免丢失。</p>

@@ -61,8 +61,9 @@ export async function importData(file, mode = 'replace') {
       await db.settings.bulkPut(settings)
     }
     if (data.piggyBanks) {
-      const banks = data.piggyBanks.map(({ id, ...rest }) => rest)
-      await db.piggyBanks.bulkAdd(banks)
+      // 保留原始 id,确保 transactions 中的 piggyBankId 引用仍然有效
+      // replace 模式下表已清空,不会产生 id 冲突
+      await db.piggyBanks.bulkPut(data.piggyBanks)
     }
   })
 }

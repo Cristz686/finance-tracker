@@ -19,6 +19,11 @@ const actionMode = ref('deposit') // deposit | withdraw
 const currentBank = ref(null)
 const currentBankTx = ref([])
 
+// 防止 mobile 上 touchend 合成 click 立即关闭弹窗
+// 记录弹窗打开时间戳,350ms 内忽略背景点击
+const createOpenTime = ref(0)
+const actionOpenTime = ref(0)
+
 // 新建表单
 const newName = ref('')
 const newTarget = ref('')
@@ -37,8 +42,14 @@ const totalTarget = computed(() =>
   banks.value.reduce((sum, b) => sum + (b.target || 0), 0)
 )
 
+// 仅加载数据,不通知父组件(避免 onMounted 时触发父组件 refreshKey 变化导致本组件被重建)
 async function load() {
   banks.value = await getAllPiggyBanks()
+}
+
+// 数据变更后调用:加载并通知父组件刷新汇总
+async function reload() {
+  await load()
   emit('changed')
 }
 
@@ -47,28 +58,47 @@ function getProgress(bank) {
   return Math.min(100, (bank.balance / bank.target) * 100)
 }
 
+function openCreate() {
+  showCreate.value = true
+  createOpenTime.value = Date.now()
+}
+
+function closeCreate() {
+  // mobile 防抖:打开后 350ms 内忽略背景点击
+  if (Date.now() - createOpenTime.value < 350) return
+  showCreate.value = false
+}
+
 async function handleCreate() {
   if (!newName.value.trim()) {
     alert('请输入存钱罐名称')
     return
   }
-  await addPiggyBank({
-    name: newName.value.trim(),
-    target: parseFloat(newTarget.value) || 0,
-    icon: newIcon.value
-  })
-  // 重置
-  newName.value = ''
-  newTarget.value = ''
-  newIcon.value = '🐷'
-  showCreate.value = false
-  await load()
+  try {
+    await addPiggyBank({
+      name: newName.value.trim(),
+      target: parseFloat(newTarget.value) || 0,
+      icon: newIcon.value
+    })
+    // 重置
+    newName.value = ''
+    newTarget.value = ''
+    newIcon.value = '🐷'
+    showCreate.value = false
+    await reload()
+  } catch (e) {
+    alert('创建失败: ' + e.message)
+  }
 }
 
 async function handleDelete(bank) {
   if (!confirm(`确定删除「${bank.name}」吗?关联的存取记录也会一并删除。`)) return
-  await deletePiggyBank(bank.id)
-  await load()
+  try {
+    await deletePiggyBank(bank.id)
+    await reload()
+  } catch (e) {
+    alert('删除失败: ' + e.message)
+  }
 }
 
 function openAction(bank, mode) {
@@ -77,8 +107,15 @@ function openAction(bank, mode) {
   actionAmount.value = ''
   actionNote.value = ''
   showAction.value = true
+  actionOpenTime.value = Date.now()
   // 加载该存钱罐的存取记录
   loadBankTransactions(bank.id)
+}
+
+function closeAction() {
+  // mobile 防抖
+  if (Date.now() - actionOpenTime.value < 350) return
+  showAction.value = false
 }
 
 async function loadBankTransactions(bankId) {
@@ -98,7 +135,7 @@ async function handleAction() {
       await withdrawFromPiggyBank(currentBank.value.id, amt, actionNote.value.trim())
     }
     showAction.value = false
-    await load()
+    await reload()
   } catch (e) {
     alert(e.message)
   }
@@ -122,7 +159,7 @@ onMounted(load)
           <span class="value muted">¥{{ formatMoney(totalTarget) }}</span>
         </div>
       </div>
-      <button class="add-btn" @click="showCreate = true">+ 新建存钱罐</button>
+      <button class="add-btn" @click="openCreate">+ 新建存钱罐</button>
     </div>
 
     <!-- 存钱罐列表 -->
@@ -158,7 +195,7 @@ onMounted(load)
     </div>
 
     <!-- 新建弹窗 -->
-    <div v-if="showCreate" class="modal" @click.self="showCreate = false">
+    <div v-if="showCreate" class="modal" @click.self="closeCreate">
       <div class="modal-card">
         <h3 class="modal-title">新建存钱罐</h3>
 
@@ -193,7 +230,7 @@ onMounted(load)
     </div>
 
     <!-- 存取弹窗 -->
-    <div v-if="showAction && currentBank" class="modal" @click.self="showAction = false">
+    <div v-if="showAction && currentBank" class="modal" @click.self="closeAction">
       <div class="modal-card">
         <h3 class="modal-title">
           {{ actionMode === 'deposit' ? '存入' : '取出' }}「{{ currentBank.name }}」
@@ -228,7 +265,7 @@ onMounted(load)
         </div>
 
         <div class="modal-actions">
-          <button class="btn-cancel" @click="showAction = false">取消</button>
+          <button class="btn-cancel" @click="closeAction">取消</button>
           <button class="btn-confirm" :class="actionMode" @click="handleAction">
             {{ actionMode === 'deposit' ? '确认存入' : '确认取出' }}
           </button>

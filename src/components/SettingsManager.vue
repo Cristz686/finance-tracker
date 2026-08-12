@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { getDailyLimit, setDailyLimit, getDayExpense } from '../db'
 import { formatMoney, getTodayStr } from '../utils/format'
 
+const emit = defineEmits(['changed'])
+
 const limit = ref('')
 const savedLimit = ref(0)
 const todaySpent = ref(0)
@@ -31,6 +33,8 @@ async function handleSave() {
       alert(`每日限额已设置为 ¥${amt.toFixed(2)}`)
     }
     await load()
+    // 通知父组件限额变化,让首页表单刷新
+    emit('changed')
   } finally {
     saving.value = false
   }

@@ -119,12 +119,14 @@ async function handleSubmit() {
       date: date.value,
       note: note.value.trim()
     })
+    // 在重置日期前判断是否为今天的支出
+    const isTodayExpense = type.value === 'expense' && date.value === getTodayStr()
     // 重置表单
     amount.value = ''
     note.value = ''
     date.value = getTodayStr()
     // 如果是今天的支出,立即更新限额显示
-    if (type.value === 'expense' && date.value === getTodayStr()) {
+    if (isTodayExpense) {
       todaySpent.value += amt
     }
     emit('saved')
