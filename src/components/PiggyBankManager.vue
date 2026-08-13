@@ -28,7 +28,13 @@ const actionOpenTime = ref(0)
 const newName = ref('')
 const newTarget = ref('')
 const newIcon = ref('🐷')
-const icons = ['🐷', '🏠', '🚗', '✈️', '💍', '🎓', '🛍️', '🎁', '💰']
+const icons = [
+  '🐷', '🏠', '🚗', '✈️', '💍', '🎓', '🛍️', '🎁', '💰',
+  // 目标/运动类
+  '💪', '🏋️', '🏃', '🚴', '🧘', '⚽', '🏀', '🎯',
+  // 美妆/穿搭目标类
+  '💄', '👗', '👠', '👜', '👒', '💎', '🌸', '🍰'
+]
 
 // 存取表单
 const actionAmount = ref('')

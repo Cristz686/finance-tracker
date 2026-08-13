@@ -40,14 +40,19 @@ const defaultCategories = [
   { name: '娱乐', type: 'expense', icon: '🎮' },
   { name: '医疗', type: 'expense', icon: '💊' },
   { name: '教育', type: 'expense', icon: '📚' },
+  { name: '健身', type: 'expense', icon: '🏋️' },
   { name: '其他支出', type: 'expense', icon: '➖' }
 ]
 
-// 初始化默认分类(仅在表为空时)
+// 初始化默认分类
+// - 首次使用表为空:批量插入全部默认分类
+// - 老用户已有分类:补齐后续新增的默认分类(如健身),已有分类不覆盖/不重复
 export async function initDefaultCategories() {
-  const count = await db.categories.count()
-  if (count === 0) {
-    await db.categories.bulkAdd(defaultCategories)
+  const existing = await db.categories.toArray()
+  const existingNames = new Set(existing.map(c => c.name))
+  const missing = defaultCategories.filter(c => !existingNames.has(c.name))
+  if (missing.length > 0) {
+    await db.categories.bulkAdd(missing)
   }
 }
 
